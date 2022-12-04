@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useReducer } from "react";
+import { useContext, useEffect, useReducer } from "react";
 import { useParams } from "react-router-dom";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -12,6 +12,7 @@ import {Helmet} from "react-helmet-async";
 import LoadingBox from "../components/LoadingBox";
 import MessageBox from "../components/MessageBox";
 import { getError } from "../utils";
+import { Store } from "../Store";
 
 const reducer = (state, action) => {
   console.log("Reducer");
@@ -48,6 +49,19 @@ function Product () {
         };
         fetchdata();
     }, [slug]);
+
+    const {state, dispatch: ctxDispatch} = useContext(Store);
+    const {cart} = state;
+    const addToCartHandler = async () => {
+        const existItem = cart.cartItems.find((x) => x._id === product._id);
+        const quantity = existItem ? existItem.quantity + 1 : 1;
+        const { data } = await axios.get(`/api/product/${product._id}`)
+        if(data.countInStock < quantity) {
+            window.alert('Sorry. Product is out of Stock');
+            return;
+        }
+        ctxDispatch({type:'CART_ADD_ITEM', payload: {...product, quantity}})
+    }
     return (
         loading ? <LoadingBox/> :
         error   ? <MessageBox variant="danger">{error}</MessageBox> :
@@ -93,7 +107,7 @@ function Product () {
                                 {product.countInStock > 0 && 
                                     <ListGroup.Item>
                                         <div className="d-grid">
-                                            <Button variant="primary">
+                                            <Button onClick={addToCartHandler} variant="primary">
                                                 Add to Cart
                                             </Button>
 
